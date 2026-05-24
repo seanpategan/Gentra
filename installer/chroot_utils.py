@@ -86,9 +86,9 @@ def de_packages(desktop: Desktop, full: bool) -> list[str]:
         Desktop.KDE: ["kde-apps/kde-apps-meta"],
         Desktop.GNOME: ["gnome-base/gnome"],
         Desktop.XFCE: ["xfce-extra/xfce4-goodies"],
-        Desktop.HYPRLAND: ["app-misc/thunar", "x11-terms/foot", "app-editors/micro",
+        Desktop.HYPRLAND: ["xfce-base/thunar", "x11-terms/foot", "app-editors/micro",
                             "app-text/zathura", "media-gfx/imv"],
-        Desktop.I3: ["app-misc/thunar", "x11-terms/alacritty", "app-editors/micro",
+        Desktop.I3: ["xfce-base/thunar", "x11-terms/alacritty", "app-editors/micro",
                      "app-text/zathura", "app-misc/feh"],
         Desktop.MINIMAL: [],
     }

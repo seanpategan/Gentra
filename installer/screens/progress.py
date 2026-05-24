@@ -74,12 +74,15 @@ class ProgressScreen(Screen):
             ("Formatting partitions", self._format, plan, config.filesystem.value),
             ("Mounting filesystems", self._mount, plan),
             ("Unpacking stage3", self._unpack_stage3),
+            ("Mounting virtual filesystems", self._bind_mounts),
             ("Writing Portage config", self._write_portage, config),
             ("Installing kernel", self._install_kernel, config),
             ("Installing desktop environment", self._install_de, config),
             ("Installing base packages", self._install_base),
             ("Creating user account", self._create_user, config),
+            ("Configuring locale and timezone", self._configure_locale, config),
             ("Enabling services", self._enable_services),
+            ("Generating fstab", self._generate_fstab, plan, config.filesystem.value),
             ("Installing bootloader", self._install_bootloader, config),
         ]
 
@@ -91,16 +94,20 @@ class ProgressScreen(Screen):
             self._set_progress((i + 1) / len(steps) * 100)
 
     def _partition(self, plan) -> None:
-        cmd = ["parted", "-s", plan.disk, "mklabel", "gpt",
-               "mkpart", "ESP", "fat32", "1MiB", "513MiB",
-               "set", "1", "esp", "on"]
+        # Layout: EFI (p1) | root (p2) | swap (p3, optional)
+        # This matches disk_utils.auto_partition_plan which returns root=p2, swap=p3
         if plan.swap:
-            cmd += ["mkpart", "swap", "linux-swap", "513MiB",
-                    f"{513 + plan.swap_gb * 1024}MiB"]
-            cmd += ["mkpart", "root", "ext4",
-                    f"{513 + plan.swap_gb * 1024}MiB", "100%"]
+            swap_size = f"{plan.swap_gb}GiB"
+            cmd = ["parted", "-s", plan.disk, "mklabel", "gpt",
+                   "mkpart", "ESP", "fat32", "1MiB", "513MiB",
+                   "set", "1", "esp", "on",
+                   "mkpart", "root", "ext4", "513MiB", f"-{swap_size}",
+                   "mkpart", "swap", "linux-swap", f"-{swap_size}", "100%"]
         else:
-            cmd += ["mkpart", "root", "ext4", "513MiB", "100%"]
+            cmd = ["parted", "-s", plan.disk, "mklabel", "gpt",
+                   "mkpart", "ESP", "fat32", "1MiB", "513MiB",
+                   "set", "1", "esp", "on",
+                   "mkpart", "root", "ext4", "513MiB", "100%"]
         subprocess.run(cmd, check=True)
 
     def _format(self, plan, fs: str) -> None:
@@ -108,13 +115,28 @@ class ProgressScreen(Screen):
         if plan.swap:
             subprocess.run(["mkswap", plan.swap], check=True)
             subprocess.run(["swapon", plan.swap], check=True)
-        fs_cmd = {"ext4": "mkfs.ext4", "btrfs": "mkfs.btrfs", "xfs": "mkfs.xfs"}
-        subprocess.run([fs_cmd[fs], "-f", plan.root], check=True)
+        fs_cmd = {
+            "ext4": ["mkfs.ext4", "-F", plan.root],   # ext4 uses -F (uppercase)
+            "btrfs": ["mkfs.btrfs", "-f", plan.root],  # btrfs uses -f (lowercase)
+            "xfs": ["mkfs.xfs", "-f", plan.root],      # xfs uses -f (lowercase)
+        }
+        subprocess.run(fs_cmd[fs], check=True)
 
     def _mount(self, plan) -> None:
         subprocess.run(["mount", plan.root, MOUNT], check=True)
         Path(f"{MOUNT}/boot/efi").mkdir(parents=True, exist_ok=True)
         subprocess.run(["mount", plan.efi, f"{MOUNT}/boot/efi"], check=True)
+
+    def _bind_mounts(self) -> None:
+        """Mount /dev, /proc, /sys into the chroot. Required before any chroot command."""
+        for src, dst in [
+            ("/dev", f"{MOUNT}/dev"),
+            ("/dev/pts", f"{MOUNT}/dev/pts"),
+            ("/proc", f"{MOUNT}/proc"),
+            ("/sys", f"{MOUNT}/sys"),
+        ]:
+            Path(dst).mkdir(parents=True, exist_ok=True)
+            subprocess.run(["mount", "--bind", src, dst], check=True)
 
     def _unpack_stage3(self) -> None:
         import urllib.request
@@ -154,9 +176,59 @@ class ProgressScreen(Screen):
         chroot_utils.create_user(config.username, config.full_name, config.password)
         hostname_file = Path(f"{MOUNT}/etc/hostname")
         hostname_file.write_text(config.hostname + "\n")
+        # Lock root password (wheel group users will use sudo)
+        chroot_utils.run_in_chroot(["passwd", "-l", "root"])
+        # Configure sudoers: allow wheel group
+        sudoers = Path(f"{MOUNT}/etc/sudoers.d/wheel")
+        sudoers.parent.mkdir(parents=True, exist_ok=True)
+        sudoers.write_text("%wheel ALL=(ALL:ALL) ALL\n")
+        sudoers.chmod(0o440)
+
+    def _configure_locale(self, config: InstallConfig) -> None:
+        """Write locale.gen, run locale-gen, set locale.conf, vconsole.conf, localtime."""
+        # locale.gen
+        locale_gen = Path(f"{MOUNT}/etc/locale.gen")
+        locale_gen.write_text(f"{config.language} UTF-8\n")
+        chroot_utils.run_in_chroot(["locale-gen"])
+        # locale.conf
+        Path(f"{MOUNT}/etc/locale.conf").write_text(f"LANG={config.language}\n")
+        # vconsole.conf (keymap)
+        Path(f"{MOUNT}/etc/vconsole.conf").write_text(f"KEYMAP={config.keymap}\n")
+        # timezone
+        tz_file = Path(f"{MOUNT}/usr/share/zoneinfo/{config.timezone}")
+        localtime = Path(f"{MOUNT}/etc/localtime")
+        if localtime.exists() or localtime.is_symlink():
+            localtime.unlink()
+        localtime.symlink_to(f"/usr/share/zoneinfo/{config.timezone}")
+
+    def _generate_fstab(self, plan, fs: str) -> None:
+        """Generate /etc/fstab with UUID-based entries."""
+        def get_uuid(dev: str) -> str:
+            result = subprocess.run(["blkid", "-s", "UUID", "-o", "value", dev],
+                                    capture_output=True, text=True, check=True)
+            return result.stdout.strip()
+
+        lines = ["# Generated by Gentra installer", ""]
+        # EFI
+        efi_uuid = get_uuid(plan.efi)
+        lines.append(f"UUID={efi_uuid}\t/boot/efi\tvfat\tdefaults\t0 2")
+        # Root
+        root_uuid = get_uuid(plan.root)
+        lines.append(f"UUID={root_uuid}\t/\t{fs}\tdefaults\t0 1")
+        # Swap
+        if plan.swap:
+            swap_uuid = get_uuid(plan.swap)
+            lines.append(f"UUID={swap_uuid}\tnone\tswap\tsw\t0 0")
+
+        Path(f"{MOUNT}/etc/fstab").write_text("\n".join(lines) + "\n")
 
     def _enable_services(self) -> None:
-        chroot_utils.enable_services(BASE_SERVICES)
+        system_services = ["NetworkManager", "iwd", "systemd-resolved"]
+        user_services = ["pipewire", "pipewire-pulse", "wireplumber"]
+        chroot_utils.enable_services(system_services)
+        # Enable user services globally (for all users)
+        for service in user_services:
+            chroot_utils.run_in_chroot(["systemctl", "--global", "enable", service])
 
     def _install_bootloader(self, config: InstallConfig) -> None:
         chroot_utils.install_bootloader(config.disk)
