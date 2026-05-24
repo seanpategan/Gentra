@@ -6,7 +6,7 @@ def load_profile(desktop: str, profiles_dir: Path) -> list[str]:
     path = profiles_dir / f"use.{desktop}"
     if not path.exists():
         raise FileNotFoundError(f"No profile found for desktop: {desktop}")
-    return path.read_text().split()
+    return [f for f in path.read_text().split() if f and f[0] in ("+", "-")]
 
 
 def merge_flags(profile_flags: list[str], wizard_flags: list[str]) -> list[str]:
