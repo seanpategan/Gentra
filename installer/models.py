@@ -38,7 +38,7 @@ class InstallConfig:
     swap_gb: int = 0
     full_name: str = ""
     username: str = ""
-    password: str = ""
+    password: str = field(default="", repr=False)
     hostname: str = "gentra"
     desktop: Optional[Desktop] = None
     install_type: InstallType = InstallType.FULL

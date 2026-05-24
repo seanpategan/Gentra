@@ -25,6 +25,16 @@ def test_install_config_fields():
         use_answers={"bluetooth": True, "printing": False},
         kernel=KernelChoice.DIST,
     )
+    assert config.language == "en_US.UTF-8"
+    assert config.keymap == "us"
+    assert config.timezone == "America/New_York"
+    assert config.disk == "/dev/sda"
+    assert config.filesystem == Filesystem.BTRFS
+    assert config.swap_gb == 8
+    assert config.full_name == "Sean Egan"
     assert config.username == "seanegan"
+    assert config.hostname == "gentra-box"
     assert config.desktop == Desktop.KDE
-    assert config.use_answers["bluetooth"] is True
+    assert config.install_type == InstallType.BASE
+    assert config.use_answers == {"bluetooth": True, "printing": False}
+    assert config.kernel == KernelChoice.DIST
