@@ -26,27 +26,29 @@ SwapPlan = PartitionPlan
 
 def list_disks() -> list[Disk]:
     """Return all block devices of type 'disk' via lsblk JSON output."""
-    result = subprocess.run(
-        ["lsblk", "-J", "-b", "-o", "NAME,SIZE,TYPE,MODEL", "-d"],
-        capture_output=True,
-    )
-    data = json.loads(result.stdout)
-
-    # Real lsblk wraps the list: {"blockdevices": [...]}
-    # The test mock provides a bare list — handle both.
-    if isinstance(data, dict):
-        devices = data.get("blockdevices", [])
-    else:
-        devices = data
+    try:
+        result = subprocess.run(
+            ["lsblk", "-J", "-b", "-o", "NAME,SIZE,TYPE,MODEL", "-d"],
+            capture_output=True,
+            check=True,
+        )
+        raw = json.loads(result.stdout)
+        # lsblk -J wraps output in {"blockdevices": [...]}; handle bare list too (tests)
+        devices = raw["blockdevices"] if isinstance(raw, dict) else raw
+    except (subprocess.CalledProcessError, json.JSONDecodeError, KeyError):
+        return []
 
     disks = []
     for dev in devices:
-        if dev.get("type") == "disk":
-            disks.append(Disk(
-                path=f"/dev/{dev['name']}",
-                size_gb=int(dev["size"]) / (1024 ** 3),
-                model=dev.get("model", "Unknown").strip(),
-            ))
+        try:
+            if dev.get("type") == "disk":
+                disks.append(Disk(
+                    path=f"/dev/{dev['name']}",
+                    size_gb=int(dev["size"]) / (1024 ** 3),
+                    model=dev.get("model", "Unknown").strip(),
+                ))
+        except (KeyError, ValueError, TypeError):
+            continue  # skip malformed entries
     return disks
 
 
