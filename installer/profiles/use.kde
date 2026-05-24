@@ -1,0 +1,1 @@
++qt6 +plasma +kde +wayland +phonon +pipewire +pipewire-pulse +networkmanager +iwd +alsa -gtk-only -gnome -xfce -lxqt

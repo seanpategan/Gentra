@@ -1,0 +1,1 @@
++X +xorg +i3 +picom +polybar +pipewire +pipewire-pulse +networkmanager +iwd +alsa -wayland -plasma -gnome -xfce

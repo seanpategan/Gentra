@@ -1,0 +1,1 @@
++wayland +hyprland +pipewire +pipewire-pulse +xdg-desktop-portal +networkmanager +iwd +alsa -X -xorg -plasma -gnome -xfce

@@ -1,0 +1,1 @@
++gtk +gnome +wayland +gjs +gstreamer +pipewire +pipewire-pulse +networkmanager +iwd +alsa -qt6 -plasma -kde -xfce
