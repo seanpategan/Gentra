@@ -123,7 +123,7 @@ class ProgressScreen(Screen):
         dest = "/tmp/stage3.tar.xz"
         urllib.request.urlretrieve(url, dest)
         with tarfile.open(dest, "r:xz") as tar:
-            tar.extractall(MOUNT)
+            tar.extractall(MOUNT, filter="data")
 
     def _write_portage(self, config: InstallConfig) -> None:
         profile_flags = profile_merger.load_profile(config.desktop.value, PROFILES_DIR)
