@@ -1,3 +1,4 @@
+import psutil
 from textual.app import ComposeResult
 from textual.screen import Screen
 from textual.widgets import Label, Select, Button, RadioButton, RadioSet
@@ -64,7 +65,6 @@ class DiskScreen(Screen):
             pressed = self.query_one("#fs", RadioSet).pressed_button
             self.config.filesystem = fs_map.get(pressed.id, Filesystem.EXT4)
             swap_val = self.query_one("#swap", Select).value
-            import psutil
             ram_gb = psutil.virtual_memory().total // (1024 ** 3)
             self.config.swap_gb = ram_gb if swap_val == "auto" else int(swap_val)
             self.app.push_screen("user")

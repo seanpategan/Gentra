@@ -27,10 +27,9 @@ class KernelScreen(Screen):
             yield Label("Kernel Setup", classes="title")
             with RadioSet(id="kernel"):
                 yield RadioButton("Distribution kernel (recommended)", value=True, id="dist")
-                yield Label("Pre-built, works on all hardware, zero config", classes="note")
                 yield RadioButton("Compile your own kernel", id="genkernel")
-                yield Label("~30-40 min · optimized for your hardware · dist-kernel kept as fallback",
-                            classes="note")
+            yield Label("  dist-kernel: Pre-built, works on all hardware, zero config", classes="note")
+            yield Label("  genkernel: ~30-40 min, optimized for your hardware, dist-kernel kept as fallback", classes="note")
             with Horizontal():
                 yield Button("← Back", id="back")
                 yield Button("Next →", variant="primary", id="next")
