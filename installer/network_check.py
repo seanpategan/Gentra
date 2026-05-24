@@ -27,3 +27,8 @@ def check_internet() -> bool:
             "No internet connection detected (timeout). "
             "Please connect to the internet and restart the installer."
         )
+    except FileNotFoundError:
+        raise NetworkError(
+            "Could not check internet connection (ping not found). "
+            "Please ensure you are connected to the internet."
+        )
