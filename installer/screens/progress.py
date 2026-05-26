@@ -50,10 +50,10 @@ class ProgressScreen(Screen):
         threading.Thread(target=self._run_install, daemon=True).start()
 
     def _log(self, msg: str) -> None:
-        self.call_from_thread(self.query_one("#log", RichLog).write, msg)
+        self.app.call_from_thread(self.query_one("#log", RichLog).write, msg)
 
     def _set_progress(self, pct: float) -> None:
-        self.call_from_thread(self.query_one("#bar", ProgressBar).update, progress=pct)
+        self.app.call_from_thread(self.query_one("#bar", ProgressBar).update, progress=pct)
 
     def _run_install(self) -> None:
         import traceback
@@ -61,7 +61,7 @@ class ProgressScreen(Screen):
         try:
             self._do_install()
             self._log("[bold green]✓ Installation complete! You can now reboot.[/]")
-            self.call_from_thread(
+            self.app.call_from_thread(
                 self.query_one("#reboot", Button).add_class, "show"
             )
         except Exception as e:
