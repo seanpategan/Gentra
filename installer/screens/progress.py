@@ -56,6 +56,8 @@ class ProgressScreen(Screen):
         self.call_from_thread(self.query_one("#bar", ProgressBar).update, progress=pct)
 
     def _run_install(self) -> None:
+        import traceback
+        log_file = Path("/tmp/gentra-install.log")
         try:
             self._do_install()
             self._log("[bold green]✓ Installation complete! You can now reboot.[/]")
@@ -63,11 +65,16 @@ class ProgressScreen(Screen):
                 self.query_one("#reboot", Button).add_class, "show"
             )
         except Exception as e:
+            tb = traceback.format_exc()
+            log_file.write_text(tb)
             self._log(f"[bold red]✗ Installation failed: {e}[/]")
+            self._log(f"[red]Full traceback written to {log_file}[/]")
 
     def _do_install(self) -> None:
         config = self.config
+        self._log(f"[cyan]Starting install on disk: {config.disk}[/]")
         plan = disk_utils.auto_partition_plan(config.disk, config.swap_gb)
+        self._log(f"[cyan]Partition plan: EFI={plan.efi} root={plan.root} swap={plan.swap}[/]")
 
         steps = [
             ("Partitioning disk", self._partition, plan),
