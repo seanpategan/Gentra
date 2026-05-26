@@ -42,14 +42,26 @@ class DesktopScreen(Screen):
         with Vertical():
             yield Label("Choose Your Desktop", classes="title")
             with ListView(id="de_list"):
-                for de, name, desc in DESKTOP_OPTIONS:
-                    yield ListItem(Label(f"{name}  —  {desc}"), id=de.value)
+                for i, (de, name, desc) in enumerate(DESKTOP_OPTIONS):
+                    marker = "(X)" if i == 0 else "( )"
+                    yield ListItem(Label(f"{marker} {name}  —  {desc}"), id=de.value)
             with Horizontal():
                 yield Button("← Back", id="back")
                 yield Button("Next →", variant="primary", id="next")
 
     def on_mount(self) -> None:
         self.query_one("#de_list", ListView).index = 0
+
+    def on_list_view_highlighted(self, event: ListView.Highlighted) -> None:
+        lv = self.query_one("#de_list", ListView)
+        for i, item in enumerate(lv.children):
+            label = item.query_one(Label)
+            text = label.renderable
+            # strip existing marker
+            if str(text).startswith("(X) ") or str(text).startswith("( ) "):
+                text = str(text)[4:]
+            marker = "(X)" if item is event.item else "( )"
+            label.update(f"{marker} {text}")
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "back":
