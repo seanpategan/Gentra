@@ -54,14 +54,11 @@ class DesktopScreen(Screen):
 
     def on_list_view_highlighted(self, event: ListView.Highlighted) -> None:
         lv = self.query_one("#de_list", ListView)
-        for i, item in enumerate(lv.children):
-            label = item.query_one(Label)
-            text = label.renderable
-            # strip existing marker
-            if str(text).startswith("(X) ") or str(text).startswith("( ) "):
-                text = str(text)[4:]
+        items = list(lv.children)
+        for i, item in enumerate(items):
+            _, name, desc = DESKTOP_OPTIONS[i]
             marker = "(X)" if item is event.item else "( )"
-            label.update(f"{marker} {text}")
+            item.query_one(Label).update(f"{marker} {name}  —  {desc}")
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "back":
