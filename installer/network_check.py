@@ -12,7 +12,7 @@ def check_internet() -> bool:
     """
     try:
         result = subprocess.run(
-            ["ping", "-c", "1", "-W", "3", "1.1.1.1"],
+            ["ping", "-c", "1", "-W", "3", "archlinux.org"],
             capture_output=True,
             timeout=5,
         )
