@@ -48,14 +48,17 @@ class DesktopScreen(Screen):
                 yield Button("← Back", id="back")
                 yield Button("Next →", variant="primary", id="next")
 
+    def on_mount(self) -> None:
+        self.query_one("#de_list", ListView).index = 0
+
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "back":
             self.app.pop_screen()
         elif event.button.id == "next":
             lv = self.query_one("#de_list", ListView)
-            if lv.highlighted_child is None:
+            if lv.index is None:
                 return
-            self.config.desktop = Desktop(lv.highlighted_child.id)
+            self.config.desktop = Desktop(list(lv.children)[lv.index].id)
             if self.config.desktop == Desktop.MINIMAL:
                 self.config.install_type = InstallType.BASE
                 self.app.push_screen("use_flags")
@@ -70,7 +73,7 @@ class InstallTypeScreen(Screen):
     InstallTypeScreen { align: center middle; }
     Vertical { width: 64; border: round $primary; padding: 1 2; }
     Label.title { text-style: bold; margin-bottom: 1; }
-    Label.apps { color: $text-muted; font-size: 80%; margin-left: 2; }
+    Label.apps { color: $text-muted; margin-left: 2; }
     RadioSet { margin-bottom: 1; }
     Horizontal { align: right middle; margin-top: 1; }
     Button { margin-left: 1; }
