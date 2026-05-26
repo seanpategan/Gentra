@@ -15,7 +15,7 @@ class UseFlagsScreen(Screen):
     Label.title { text-style: bold; margin-bottom: 1; }
     Label.category { text-style: bold; color: $accent; margin-top: 1; }
     ScrollableContainer { height: 1fr; border: round $surface; padding: 0 1; }
-    .flag-hint { color: $text-muted; font-size: 80%; margin-left: 4; }
+    .flag-hint { color: $text-muted; margin-left: 4; }
     Horizontal { align: right middle; margin-top: 1; }
     Button { margin-left: 1; }
     """

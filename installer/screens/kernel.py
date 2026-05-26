@@ -12,7 +12,7 @@ class KernelScreen(Screen):
     KernelScreen { align: center middle; }
     Vertical { width: 60; border: round $primary; padding: 1 2; }
     Label.title { text-style: bold; margin-bottom: 1; }
-    Label.note { color: $text-muted; font-size: 80%; margin-left: 2; margin-bottom: 1; }
+    Label.note { color: $text-muted; margin-left: 2; margin-bottom: 1; }
     RadioSet { margin-bottom: 1; }
     Horizontal { align: right middle; margin-top: 1; }
     Button { margin-left: 1; }
