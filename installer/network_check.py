@@ -1,4 +1,4 @@
-import subprocess
+import socket
 
 
 class NetworkError(Exception):
@@ -7,28 +7,17 @@ class NetworkError(Exception):
 
 def check_internet() -> bool:
     """
-    Check internet connectivity by pinging 1.1.1.1.
+    Check internet connectivity via TCP connection to 8.8.8.8:53 (DNS).
     Raises NetworkError if no connection. Returns True on success.
     """
     try:
-        result = subprocess.run(
-            ["ping", "-c", "1", "-W", "3", "archlinux.org"],
-            capture_output=True,
-            timeout=5,
-        )
-        if result.returncode != 0:
-            raise NetworkError(
-                "No internet connection detected. "
-                "Please connect to the internet and restart the installer."
-            )
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(5)
+        sock.connect(("8.8.8.8", 53))
+        sock.close()
         return True
-    except subprocess.TimeoutExpired:
+    except OSError:
         raise NetworkError(
-            "No internet connection detected (timeout). "
+            "No internet connection detected. "
             "Please connect to the internet and restart the installer."
-        )
-    except FileNotFoundError:
-        raise NetworkError(
-            "Could not check internet connection (ping not found). "
-            "Please ensure you are connected to the internet."
         )

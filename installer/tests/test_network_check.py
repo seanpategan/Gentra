@@ -1,17 +1,20 @@
+import socket
 from unittest.mock import patch, MagicMock
-import subprocess
 from network_check import check_internet, NetworkError
 
 
 def test_check_internet_success():
-    mock_result = MagicMock()
-    mock_result.returncode = 0
-    with patch("network_check.subprocess.run", return_value=mock_result):
+    mock_sock = MagicMock()
+    with patch("network_check.socket.socket", return_value=mock_sock):
         assert check_internet() is True
+    mock_sock.connect.assert_called_once_with(("8.8.8.8", 53))
+    mock_sock.close.assert_called_once()
 
 
 def test_check_internet_failure_raises():
-    with patch("network_check.subprocess.run", side_effect=subprocess.TimeoutExpired("ping", 5)):
+    mock_sock = MagicMock()
+    mock_sock.connect.side_effect = OSError("Connection refused")
+    with patch("network_check.socket.socket", return_value=mock_sock):
         try:
             check_internet()
             assert False, "Should have raised NetworkError"
@@ -19,10 +22,10 @@ def test_check_internet_failure_raises():
             assert "internet" in str(e).lower()
 
 
-def test_check_internet_bad_returncode_raises():
-    mock_result = MagicMock()
-    mock_result.returncode = 1
-    with patch("network_check.subprocess.run", return_value=mock_result):
+def test_check_internet_timeout_raises():
+    mock_sock = MagicMock()
+    mock_sock.connect.side_effect = socket.timeout("timed out")
+    with patch("network_check.socket.socket", return_value=mock_sock):
         try:
             check_internet()
             assert False, "Should have raised NetworkError"
