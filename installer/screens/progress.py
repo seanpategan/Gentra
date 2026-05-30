@@ -150,7 +150,16 @@ class ProgressScreen(Screen):
         import tarfile
         url = "https://distfiles.gentoo.org/releases/amd64/autobuilds/current-stage3-amd64-systemd/stage3-amd64-systemd-latest.tar.xz"
         dest = "/tmp/stage3.tar.xz"
-        urllib.request.urlretrieve(url, dest)
+
+        def _progress(block_count, block_size, total):
+            if total > 0:
+                mb_done = block_count * block_size / 1_048_576
+                mb_total = total / 1_048_576
+                self._log(f"  Downloading stage3: {mb_done:.0f} / {mb_total:.0f} MB")
+
+        self._log("  Downloading stage3 tarball (~500 MB)...")
+        urllib.request.urlretrieve(url, dest, reporthook=_progress)
+        self._log("  Extracting stage3 (this takes a few minutes)...")
         with tarfile.open(dest, "r:xz") as tar:
             tar.extractall(MOUNT, filter="data")
 
