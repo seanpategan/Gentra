@@ -44,3 +44,4 @@ class InstallConfig:
     install_type: InstallType = InstallType.FULL
     use_answers: dict[str, bool] = field(default_factory=dict)
     kernel: KernelChoice = KernelChoice.DIST
+    use_binhost: bool = True

@@ -168,7 +168,7 @@ class ProgressScreen(Screen):
         wizard_flags = use_wizard.answers_to_flags(config.use_answers)
         merged = profile_merger.merge_flags(profile_flags, wizard_flags)
         use_line = profile_merger.flags_to_make_conf(merged)
-        chroot_utils.write_make_conf(use_line, profile=config.desktop.value)
+        chroot_utils.write_make_conf(use_line, profile=config.desktop.value, use_binhost=config.use_binhost)
         Path(f"{MOUNT}/etc/portage/repos.conf").mkdir(parents=True, exist_ok=True)
         chroot_utils.run_in_chroot(["emerge-webrsync"])
 
