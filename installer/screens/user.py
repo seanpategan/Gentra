@@ -59,9 +59,6 @@ class UserScreen(Screen):
             if not re.match(r"^[a-z_][a-z0-9_-]{0,31}$", username):
                 error.update("Username must be lowercase letters, numbers, _ or - only.")
                 return
-            if len(password) < 6:
-                error.update("Password must be at least 6 characters.")
-                return
             if password != confirm:
                 error.update("Passwords do not match.")
                 return
